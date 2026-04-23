@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login - FocusFlow</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+   
+    body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Times New Roman', Times, serif;
+
+   
+    }
+
+    .card {
+    background: #130ceb57;
+    border: 1px solid #000000;
+    border-radius: 12px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 360px;
+    }
+
+    h1 {
+    font-size: 30px;
+    font-weight: 500;
+    margin-bottom: 1rem;
+  
+
+    
+    
+    }
+
+    .error-msg {
+    display: none;
+    font-size: 13px;
+    color: #c0392b;
+    background: #fdf0ef;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 1rem;
+    }
+
+    .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 1rem;
+    }
+
+    label {
+    font-size: 13px;
+    color: #000000;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 14px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    outline: none;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+    border-color: #999;
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
+    }
+
+    input[type="submit"] {
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 9px;
+    font-size: 14px;
+    font-weight: 500;
+    background: #ffffff;
+    border: 1px solid #000000;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Times New Roman', Times, serif;
+    }
+
+    input[type="submit"]:hover { background: #e8e8e8; }
+    input[type="submit"]:active { transform: scale(0.98); }
+    
+</style>
+
+</head>
+<body>
+<div class="card">
+  <h1>Admin login</h1>
+  <div class="error-msg" id="errorMsg"></div>
+  <form id="loginForm" onsubmit="handleLogin(event)">
+    <div class="field">
+      <label for="username">Username</label>
+      <input type="text" id="username" placeholder="Enter username" required>
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Enter password" required>
+    </div>
+    <input type="submit" value="Sign in">
+  </form>
+</div>
+<script>
+async function handleLogin(event) {
+  event.preventDefault();
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+  const errorMsg = document.getElementById('errorMsg');
+  try {
+    const response = await fetch('/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    if (response.ok) {
+      window.location.href = '/admin';
+    } else {
+      errorMsg.textContent = 'Invalid credentials. Please try again.';
+      errorMsg.style.display = 'block';
+    }
+  } catch (e) {
+    errorMsg.textContent = 'Connection error. Please try again.';
+    errorMsg.style.display = 'block';
+  }
+}
+</script>
+</body>
+</html>

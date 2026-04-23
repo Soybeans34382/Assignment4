@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+    font-family: 'Times New Roman', Times, serif;
+    background: #f5f5f5;
+    padding: 20px;
+    }
+
+    .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    }
+
+    h1 {
+    font-size: 28px;
+    font-weight: 500;
+    }
+
+    button {
+    padding: 8px 14px;
+    border: 1px solid #000;
+    background: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    }
+
+    button:hover { background: #e8e8e8; }
+    button:active { transform: scale(0.98); }
+
+    .logoutBtn {
+    background: #fff;
+    }
+
+    .addBtn {
+    margin-bottom: 20px;
+    }
+
+    .message {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 8px;
+    display: none;
+    }
+
+    .message.success {
+    display: block;
+    background: #eafaf1;
+    color: #27ae60;
+    }
+
+    .message.error {
+    display: block;
+    background: #fdf0ef;
+    color: #c0392b;
+    }
+
+    .products {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 16px;
+    }
+
+    .productCard {
+    background: #130ceb57;
+    border: 1px solid #000;
+    border-radius: 12px;
+    padding: 16px;
+    }
+
+    .productCard h3 {
+    margin-bottom: 6px;
+    }
+
+    .productPrice {
+    font-weight: bold;
+    margin: 8px 0;
+    }
+
+    .productActions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    }
+
+    .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    }
+
+    .modal.open {
+    display: flex;
+    }
+
+    .modalContent {
+    background: #ffffff;
+    border: 1px solid #000;
+    border-radius: 12px;
+    padding: 20px;
+    width: 100%;
+    max-width: 400px;
+    }
+
+    .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+    }
+
+    input, textarea {
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-family: inherit;
+    }
+
+    input:focus, textarea:focus {
+    border-color: #999;
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
+    outline: none;
+    }
+
+    .modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Admin Panel - Products</h1>
+  <button class="logoutBtn" onclick="logout()">Logout</button>
+</div>
+
+<button class="addBtn" onclick="openAddModal()">+ Add Product</button>
+
+<div class="message" id="message"></div>
+
+<div class="products" id="productsContainer">
+  <div class="empty">Loading products...</div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modalContent">
+    <h2 id="modalTitle">Add Product</h2>
+    <form id="productForm" onsubmit="saveProduct(event)">
+      <input type="hidden" id="productId">
+
+      <div class="field">
+        <label>Name</label>
+        <input type="text" id="productName" required>
+      </div>
+
+      <div class="field">
+        <label>Category</label>
+        <textarea id="productCategory" required>
+        </textarea>
+      </div>
+
+      <div class="field">
+        <label>Description</label>
+        <textarea id="productDescription" required></textarea>
+      </div>
+
+      <div class="field">
+        <label>Price</label>
+        <input type="number" id="productPrice" step="0.01" required>
+      </div>
+
+      <div class="field">
+        <label>Tag</label>
+        <input type="text" id="productTag" required>
+      </div>
+
+      <div class="modalActions">
+        <button type="button" class="cancelBtn" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="saveBtn">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+let editingId = null;
+
+function loadProducts() {
+  fetch('/api')
+    .then(r => r.json())
+    .then(products => {
+      const container = document.getElementById('productsContainer');
+      if (products.length === 0) {
+        container.innerHTML = '<div class="empty">No products found.</div>';
+        return;
+      }
+      function check0(number){
+        if (number == 0){
+            number = "Free"
+        }
+        return number
+      }
+      container.innerHTML = products.map(p => `
+        <div class="productCard">
+          <div class="productId">ID: ${p._id}</div>
+          <h3>${p.name}</h3>
+          <p><strong>${p.category}</strong></p>
+          <p>${p.description}</p>
+          <p class="productPrice">$${check0(p.price)}</p>
+          <p><em>${p.tag}</em></p>
+          <div class="productActions">
+            <button class="btn btnEdit" onclick="editProduct('${p._id}')">Edit</button>
+            <button class="btn btnDelete" onclick="deleteProduct('${p._id}')">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    })
+    .catch(() => showMessage('Error loading products', 'error'));
+}
+
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'Add Product';
+  document.getElementById('productForm').reset();
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+function editProduct(id) {
+  fetch(`/api/${id}`)
+    .then(r => r.json())
+    .then(p => {
+      editingId = id;
+      document.getElementById('modalTitle').textContent = 'Edit Product';
+      document.getElementById('productId').value = id;
+      document.getElementById('productName').value = p.name;
+      document.getElementById('productCategory').value = p.category;
+      document.getElementById('productDescription').value = p.description;
+      document.getElementById('productPrice').value = p.price;
+      document.getElementById('productTag').value = p.tag;
+      document.getElementById('modal').classList.add('open');
+    })
+    .catch(() => showMessage('Error loading product', 'error'));
+}
+
+function saveProduct(e) {
+  e.preventDefault();
+  const product = {
+    name: document.getElementById('productName').value,
+    category: document.getElementById('productCategory').value,
+    description: document.getElementById('productDescription').value,
+    price: parseFloat(document.getElementById('productPrice').value),
+    tag: document.getElementById('productTag').value
+  };
+
+  const method = editingId ? 'PUT' : 'POST';
+  const url = editingId ? `/api/${editingId}` : '/api';
+
+  fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(product)
+  })
+    .then(r => r.json())
+    .then(() => {
+      showMessage(`Product ${editingId ? 'updated' : 'created'}`, 'success');
+      closeModal();
+      loadProducts();
+    })
+    .catch(() => showMessage('Error saving product', 'error'));
+}
+
+function deleteProduct(id) {
+  if (!confirm('Delete this product?')) return;
+  fetch(`/api/${id}`, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(() => {
+      showMessage('Product deleted', 'success');
+      loadProducts();
+    })
+    .catch(() => showMessage('Error deleting product', 'error'));
+}
+
+function logout() {
+  fetch('/logout', { method: 'POST' })
+    .then(() => window.location.href = '/');
+}
+
+function showMessage(msg, type) {
+  const el = document.getElementById('message');
+  el.textContent = msg;
+  el.className = `message ${type}`;
+  setTimeout(() => el.className = 'message', 4000);
+}
+
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target.id === 'modal') closeModal();
+});
+
+loadProducts();
+</script>
+
+</body>
+</html>
